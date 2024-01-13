@@ -6,6 +6,7 @@ import OptOmit.{NoOmit, OmitNull}
 import java.text.SimpleDateFormat
 import java.util.Date
 import scala.collection.mutable
+import macros._
 
 trait DateFormatter:
   def parse(date: String, patter: String): Date
@@ -19,16 +20,20 @@ trait JsonObject:
 trait JsonParser:
   def parse(s: String): JsonObject
 
-trait DataCreator[T]:
-    def empty: T
+trait JsonCreator:
+  def empty: JsonObject
 
 type EncoderFn[T] = (T, JsonObject, Option[EncodeOptions]) => JsonObject
 
 enum OptOmit:
   case OmitNull, NoOmit
 
+
+
+
 case class EncodeOptions(opt: OptOmit = NoOmit,
                          pattern: String = "",
+                         df: Option[DateFormatter] = None,
 )
 
 enum EncoderItem:
@@ -41,12 +46,12 @@ enum DecoderItem:
 
 
 trait EncoderBase[T]:
-  def encode(data: T)(using c: DataCreator[JsonObject]): String
-  def encodeAsJson(data: T)(using c: DataCreator[JsonObject]): JsonObject
+  def encode(data: T): String
+  def encodeAsJson(data: T): JsonObject
 
 trait DecoderBase[T]:
-  def decode(data: String)(using m: DataCreator[T], p: JsonParser): T
-  def decode(data: JsonObject)(using m: DataCreator[T]): T
+  def decode(data: String)(using p: JsonParser): T
+  def decode(data: JsonObject): T
 
 class Json extends JsonObject:
 
@@ -75,17 +80,16 @@ class Json extends JsonObject:
       
     s"{${l.mkString(", ")}}"
 
-
-
 object Json:
   def apply(values: (String, Any)*): Json = new Json().addAll(values.toMap)
-  
-
 
 // encode to json
-class Encoder[T](val options: Option[EncodeOptions] = None)(using df: DateFormatter) extends EncoderBase[T]:
+class Encoder[T](using jsonCreator: JsonCreator, options: Option[EncodeOptions] = None) extends EncoderBase[T]:
 
   var fields = mutable.ListBuffer[EncoderItem]()
+
+  inline def empty: T =
+    createInstance[T]
 
   private def setJsonValue(name: String, json: JsonObject, value: Any, opts: Option[EncodeOptions]) =
 
@@ -94,7 +98,7 @@ class Encoder[T](val options: Option[EncodeOptions] = None)(using df: DateFormat
         i match
           case d: Date =>
             opts.orElse(options) match
-              case Some(EncodeOptions(_, patter)) =>
+              case Some(EncodeOptions(_, patter, Some(df))) =>
                 if patter.isEmpty
                 then (d, true)
                 else (df.format(d, patter), true)
@@ -102,7 +106,7 @@ class Encoder[T](val options: Option[EncodeOptions] = None)(using df: DateFormat
           case _ => (i, true)
       case None =>
         opts.orElse(options) match
-          case Some(EncodeOptions(OmitNull, _)) => (null, false)
+          case Some(EncodeOptions(OmitNull, _,_)) => (null, false)
           case _ => (null, true)
       case other => (other, true)
 
@@ -150,8 +154,8 @@ class Encoder[T](val options: Option[EncodeOptions] = None)(using df: DateFormat
   def double(name: String, f: T => Double, opts: Option[EncodeOptions] = None): Encoder[T] =
     field(name, f, opts)
 
-  def date(name: String, f: T => Date, opts: Option[EncodeOptions] = None): Encoder[T] =
-    field(name, f, opts)
+  def date(name: String, f: T => Date, opts: Option[EncodeOptions] = None)(using df: DateFormatter): Encoder[T] =
+    field(name, f, opts.map(_.copy(df = Some(df))))
 
   def list[S](name: String, f: T => List[S], opts: Option[EncodeOptions] = None): Encoder[T] =
     field(name, f, opts)
@@ -184,8 +188,8 @@ class Encoder[T](val options: Option[EncodeOptions] = None)(using df: DateFormat
   def optDouble(name: String, f: T => Option[Double], opts: Option[EncodeOptions] = None): Encoder[T] =
     optField(name, f, opts)
 
-  def optDate(name: String, f: T => Option[Date], opts: Option[EncodeOptions] = None): Encoder[T] =
-    optField(name, f, opts)
+  def optDate(name: String, f: T => Option[Date], opts: Option[EncodeOptions] = None)(using df: DateFormatter): Encoder[T] =
+    optField(name, f, opts.map(_.copy(df = Some(df))))
 
   def optList[S](name: String, f: T => Option[List[S]], opts: Option[EncodeOptions] = None): Encoder[T] =
     optField(name, f, opts)
@@ -200,20 +204,22 @@ class Encoder[T](val options: Option[EncodeOptions] = None)(using df: DateFormat
     fields.addOne(SimpleEncoder(fn, opts))
     this
 
-  override def encode(obj: T)(using c: DataCreator[JsonObject]): String =
+  override def encode(obj: T): String =
     encodeAsJson(obj).stringify()
 
-  override def encodeAsJson(obj: T)(using c: DataCreator[JsonObject]): JsonObject =
-    fields.foldLeft(c.empty):
+  override def encodeAsJson(obj: T): JsonObject =
+    fields.foldLeft(jsonCreator.empty):
       case (j, SimpleEncoder(f: EncoderFn[T], opts)) =>
         f(obj, j, opts)
       
 
 
 // decode from json
-class Decoder[T] extends DecoderBase[T]:
+class Decoder[T](empty: () => T) extends DecoderBase[T]:
 
   var fields = mutable.ListBuffer[DecoderItem]()
+
+  private def _empty  = empty()
 
   private def getfn[R](name: String, f: (T, R) => T)(obj: T, json: JsonObject): T =
     json.getByName(name) match
@@ -226,8 +232,8 @@ class Decoder[T] extends DecoderBase[T]:
     fields.addOne(SimpleDecoder(getfn(name, f)))
     this
 
-  def ref[S](name: String, f: (T, S) => T)(using dateCreator: DataCreator[S], decoder: Decoder[S]): Decoder[T] =
-    
+  def ref[S](name: String, f: (T, S) => T)(decoder: Decoder[S]): Decoder[T] =
+  
     val fn: (T, JsonObject) => T =
       case (obj, json) =>
         json.getByName(name) match
@@ -288,11 +294,11 @@ class Decoder[T] extends DecoderBase[T]:
     field(name, f)
 
     
-  override def decode(s: String)(using m: DataCreator[T], p: JsonParser): T = 
+  override def decode(s: String)(using p: JsonParser): T = 
     decode(p.parse(s))
 
-  override def decode(json: JsonObject)(using m: DataCreator[T]): T =
-    fields.foldLeft(m.empty): 
+  override def decode(json: JsonObject): T =
+    fields.foldLeft(_empty): 
       case (obj, SimpleDecoder(op: DecoderFn[T])) =>
         op(obj, json)
       
@@ -300,7 +306,7 @@ class Decoder[T] extends DecoderBase[T]:
 case class Group(id: Int = 0, description: String = "")
 case class Person(id: Int = 0,
                   name: String = "",
-                  group: Group,
+                  group: Group = null,
                   groups: Option[List[Group]] = None,
                   groups2: List[Group] = Nil,
                   birthday: Option[Date] = None,
@@ -310,29 +316,25 @@ case class Person(id: Int = 0,
 given JsonParser with
     def parse(s: String): JsonObject = new Json()
 
-given DataCreator[Person] with
-  def empty: Person = Person(group = Group())
-
-given DataCreator[Group] with
-  def empty: Group = Group()
-
-given DataCreator[JsonObject] with
+given JsonCreator with
   def empty: JsonObject = Json()
 
 given DateFormatter with
   override def format(date: Date, patter: String): String = new SimpleDateFormat(patter).format(date)
   override def parse(date: String, patter: String): Date = new SimpleDateFormat(patter).parse(date)
 
+
+
 @main def main: Unit =
 
-  given Decoder[Group] = Decoder[Group]
+  val dg: Decoder[Group] = Decoder[Group](() => createInstance[Group])
     .string("Description", (p, v) => p.copy(description = v))
     .int("Id", (p, v) => p.copy(id = v))
 
-  val decoder = Decoder[Person]
+  val decoder = Decoder[Person](() => createInstance[Person])
     .string("Name", (p, v) => p.copy(name = v))
     .int("Id", (p, v) => p.copy(id = v))
-    .ref[Group]("Group", (p, v) => p.copy(group = v))
+    .ref[Group]("Group", (p, v) => p.copy(group = v))(dg)
 
 
   given Encoder[Group] = Encoder[Group]()
@@ -369,4 +371,7 @@ given DateFormatter with
 
   println(p)
   println(p1)
+
+  def i = createInstance[Person]
+  println(i)
 
