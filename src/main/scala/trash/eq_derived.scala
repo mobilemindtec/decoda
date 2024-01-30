@@ -1,4 +1,6 @@
-import compiletime.*
+package trash
+
+import scala.compiletime.*
 import scala.deriving.*
 import scala.quoted.*
 

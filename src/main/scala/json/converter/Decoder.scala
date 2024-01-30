@@ -1,7 +1,8 @@
+package json.converter
 
 import DecoderItem.SimpleDecoder
 import macros.createInstance
-
+import base._
 import java.util.Date
 import scala.collection.mutable
 

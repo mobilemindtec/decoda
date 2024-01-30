@@ -1,13 +1,13 @@
-package random
+package trash
 
-  trait Random[A]:
+trait Random[A]:
     def generate(): A
 
 
-  object Random:
+object Random:
 
-    import scala.deriving._
     import scala.compiletime.{erasedValue, summonInline}
+    import scala.deriving.*
 
     inline def summonAll[A <: Tuple]: List[Random[_]] =
       inline erasedValue[A] match
@@ -42,7 +42,7 @@ package random
 
 object data_test:
 
-  import Random._
+  import Random.*
 
   enum SiteMember:
     case RegisteredUser(id: Long, email: String, isAdmin: Boolean)

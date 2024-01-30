@@ -1,3 +1,5 @@
+package trash
+
 import scala.deriving.*
 
 object Tuples:
