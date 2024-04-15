@@ -1,41 +1,29 @@
-import infra.{JArray, Json}
-import json.converter.{DecodeOptions, Decoder, EncodeOptions, Encoder, OptOmit}
-import json.converter.base.{DateFormatter, JsonCreator, JsonObject, JsonParser}
+package codec
+
+import br.com.mobilemind.json.codec.converter.base.{DateFormatter, JsonCreator, JsonParser}
+import br.com.mobilemind.json.codec.converter.{DecodeOptions, Decoder, EncodeOptions, Encoder, OptOmit}
+import br.com.mobilemind.json.codec.defs.{JsonArray, JsonObject}
+import codec.infra.df
+import models.{Group, Person}
+import codec.models.{Group, Person}
 import org.scalatest.funsuite.AnyFunSuite
 
 import java.text.SimpleDateFormat
 import java.util.Date
 
-object models:
-  case class Group(id: Int = 0, description: String = "")
 
-  case class Person(id: Int = 0,
-                    name: String = "",
-                    group: Group = null,
-                    groups: Option[List[Group]] = None,
-                    groups2: List[Group] = Nil,
-                    birthday: Option[Date] = None,
-                    paymentDays: List[Int] = Nil,
-                    age: Option[Int] = None)
+class JsonConverterWithParserTest extends AnyFunSuite:
 
-object implicits:
   given jsonParser: JsonParser with
-    def parse(s: String): JsonObject = new Json()
+    def parse(s: String): JsonObject = new JsonObject()
 
   given jsonCreator: JsonCreator with
-    def empty: JsonObject = Json()
+    def empty: JsonObject = JsonObject()
 
   given dateFormatter: DateFormatter with
     override def format(date: Date, patter: String): String = new SimpleDateFormat(patter).format(date)
 
     override def parse(date: String, patter: String): Date = new SimpleDateFormat(patter).parse(date)
-
-import models.{Group, Person}
-
-
-class FirstSpec extends AnyFunSuite:
-
-  import implicits.{given JsonCreator, given JsonParser, given DateFormatter}
 
   given Decoder[Group] = Decoder.typ[Group]
     .string("Description", (p, v) => p.copy(description = v))
@@ -66,23 +54,23 @@ class FirstSpec extends AnyFunSuite:
     .listRef("Groups2", _.groups2)
     .list("PaymentDays", _.paymentDays)
 
-  test("json decode"){
-    val json = Json(
+  test("json decode with native parser"){
+    val json = JsonObject(
       "Name" -> "Ricardo",
       "Id" -> 1,
-      "Group" -> Json("Id" -> 5, "Description" -> "Group 5"),
+      "Group" -> JsonObject("Id" -> 5, "Description" -> "Group 5"),
       "Birthday" -> "2010-01-05",
-      "PaymentDays" -> List(15, 20, 25),
-      "Groups" -> JArray(
-        Json("Id" -> 1, "Description" -> "Group 1"),
-        Json("Id" -> 2, "Description" -> "Group 2")
+      "PaymentDays" -> JsonArray(15, 20, 25),
+      "Groups" -> JsonArray(
+        JsonObject("Id" -> 1, "Description" -> "Group 1"),
+        JsonObject("Id" -> 2, "Description" -> "Group 2")
       ),
-      "Groups2" -> JArray(
-        Json("Id" -> 3, "Description" -> "Group 3"),
-        Json("Id" -> 4, "Description" -> "Group 4")
+      "Groups2" -> JsonArray(
+        JsonObject("Id" -> 3, "Description" -> "Group 3"),
+        JsonObject("Id" -> 4, "Description" -> "Group 4")
       ))
     val p = decoder.decode(json)
-
+  
     assert(p.name == "Ricardo")
     assert(p.id == 1)
     assert(p.group == Group(5, "Group 5"))
@@ -91,7 +79,7 @@ class FirstSpec extends AnyFunSuite:
     assert(p.groups2 == Group(3, "Group 3") :: Group(4, "Group 4") :: Nil)
   }
 
-  test("json encode"){
+  test("json encode with native parser") {
     val person = Person(
       id = 1,
       name = "Ricardo",
@@ -104,6 +92,6 @@ class FirstSpec extends AnyFunSuite:
     )
     val p = encoder.encode(person)
 
-    assert(p == "{Id: 1, Name: Ricardo, Group: {Id: 5, Description: Group 5}, Birthday: 2024-01-30, Age: 37, Groups: [{Id: 1, Description: Group 1}, {Id: 2, Description: Group 2}], Groups2: [{Id: 1, Description: Group 1}, {Id: 2, Description: Group 2}], PaymentDays: [15, 22, 28]}")
+    assert(p == s"""{"Id": 1, "Name": "Ricardo", "Group": {"Id": 5, "Description": "Group 5"}, "Birthday": "${df.format(Date())}", "Age": 37, "Groups": [{"Id": 1, "Description": "Group 1"}, {"Id": 2, "Description": "Group 2"}], "Groups2": [{"Id": 1, "Description": "Group 1"}, {"Id": 2, "Description": "Group 2"}], "PaymentDays": [15, 22, 28]}""")
 
   }

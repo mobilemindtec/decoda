@@ -9,12 +9,12 @@ object Random:
     import scala.compiletime.{erasedValue, summonInline}
     import scala.deriving.*
 
-    inline def summonAll[A <: Tuple]: List[Random[_]] =
+    inline def summonAll[A <: Tuple]: List[Random[?]] =
       inline erasedValue[A] match
         case _: EmptyTuple => Nil
         case _: (t *: ts) => summonInline[Random[t]] :: summonAll[ts]
 
-    def toTuple(xs: List[_], acc: Tuple): Tuple =
+    def toTuple(xs: List[?], acc: Tuple): Tuple =
       xs match
         case Nil => acc
         case (h :: t) => h *: toTuple(t, acc)
@@ -25,14 +25,14 @@ object Random:
         case s: Mirror.SumOf[A]     => deriveSum(s, instances)
         case p: Mirror.ProductOf[A] => deriveProduct(p, instances)
 
-    def deriveSum[A](s: Mirror.SumOf[A], instances: => List[Random[_]]): Random[A] =
+    def deriveSum[A](s: Mirror.SumOf[A], instances: => List[Random[?]]): Random[A] =
       new Random[A]:
         def generate(): A =
           instances(util.Random.nextInt(instances.size))
             .asInstanceOf[Random[A]]
             .generate()
 
-    def deriveProduct[A](p: Mirror.ProductOf[A], instances: => List[Random[_]]): Random[A] =
+    def deriveProduct[A](p: Mirror.ProductOf[A], instances: => List[Random[?]]): Random[A] =
       new Random[A]:
         def generate(): A =
           p.fromProduct(

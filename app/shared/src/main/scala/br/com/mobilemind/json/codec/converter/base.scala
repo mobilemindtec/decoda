@@ -1,4 +1,4 @@
-package json.converter
+package br.com.mobilemind.json.codec.converter
 
 import java.util.Date
 import scala.collection.mutable
@@ -13,12 +13,17 @@ object base:
     def parse(date: String, patter: String): Date
     def format(date: Date, patter: String): String
   
-  trait JsonObject:
+  trait Json
+  
+  case class JsonValue(value: Any) extends Json
+  
+  trait JsonObject extends Json:
     def getByName(name: String): Option[Any]
     def setByName(name: String, value: Any): Unit
     def stringify(): String
+    def parser(json: String): Json
   
-  trait JsonArray:
+  trait JsonArray extends Json:
     def get(i: Int): Any
     def size: Int
     def add(v: Any): Unit
@@ -34,5 +39,5 @@ object base:
   
   trait JsonCreator:
     def empty: JsonObject
-
+  
 

@@ -1,4 +1,4 @@
-package json.converter
+package br.com.mobilemind.json.codec.converter
 
 import EncoderItem.SimpleEncoder
 import OptOmit.{NoOmit, OmitNull}
@@ -46,7 +46,6 @@ class Encoder[T](options: Option[EncodeOptions] = None)(using jsonCreator: JsonC
 
     if set
     then json.setByName(name, v)
-
 
   private def setfn[S](name: String, f: T => S)(obj:T, json: JsonObject, opts: Option[EncodeOptions]): JsonObject =
     setJsonValue(name, json, f(obj), opts)
@@ -153,7 +152,6 @@ class Encoder[T](options: Option[EncodeOptions] = None)(using jsonCreator: JsonC
     fields.foldLeft(jsonCreator.empty):
       case (j, SimpleEncoder(f: EncoderFn[T], opts)) =>
         f(obj, j, opts)
-      case (j, _) => j
 
 
 object Encoder:
