@@ -1,8 +1,8 @@
 package codec
 
-import br.com.mobilemind.json.codec.parser.Json
-import br.com.mobilemind.json.codec.parser.Json.AstValue.*
-import br.com.mobilemind.json.codec.parser.Json.{AstProp, AstValue}
+import br.com.mobilemind.json.codec.parser.Parser
+import br.com.mobilemind.json.codec.parser.Parser.AstValue.*
+import br.com.mobilemind.json.codec.parser.Parser.{AstProp, AstValue}
 import org.scalatest.funsuite.AnyFunSuite
 
 class JsonParserTest extends AnyFunSuite:
@@ -17,7 +17,7 @@ class JsonParserTest extends AnyFunSuite:
         |"employer":  { "company":  "Mobile Mind", "enabled":  true }
         |}""".stripMargin
 
-    Json.parse(json) match
+    Parser.parse(json) match
       case ObjectAst(props) =>
 
         assert(props.contains(AstProp("name", StringLiteral("Ricardo Bocchi"))))
@@ -35,9 +35,9 @@ class JsonParserTest extends AnyFunSuite:
     val json =
       """{"name": "Ricardo Bocchi", "age": 38, "salary": 1260.00, "employer": {"company": "Mobile Mind", "enabled": true}}"""
 
-    Json.parse(json) match
+    Parser.parse(json) match
       case ast: AstValue =>
-        assert(Json.format(ast) == json, "json not equals")
+        assert(Parser.format(ast) == json, "json not equals")
       case thing => fail(s"expect AstValue, but receive ${thing}")
   }
 
@@ -46,9 +46,9 @@ class JsonParserTest extends AnyFunSuite:
     val json =
       """{"name": "John", "age": 30, "address": {"city": "New York", "zipcode": 10001}, "tags": ["tag1", "tag2"], "status": true, "balance": 100.50}"""
 
-    Json.parse(json) match {
+    Parser.parse(json) match {
       case ast: AstValue =>
-        assert(Json.format(ast) == json, "json not equals")
+        assert(Parser.format(ast) == json, "json not equals")
       case thing => fail(s"expect AstValue, but received $thing")
     }
   }
@@ -58,9 +58,9 @@ class JsonParserTest extends AnyFunSuite:
     val json =
       """[{"name": "John", "age": 30}, {"name": "Alice", "age": 28}]"""
 
-    Json.parse(json) match {
+    Parser.parse(json) match {
       case ast: AstValue =>
-        assert(Json.format(ast) == json, "json not equals")
+        assert(Parser.format(ast) == json, "json not equals")
       case thing => fail(s"expect AstValue, but received $thing")
     }
   }
@@ -70,9 +70,9 @@ class JsonParserTest extends AnyFunSuite:
     val json =
       """{"isActive": true, "name": "Alice", "age": 28, "balance": 1000.75}"""
 
-    Json.parse(json) match {
+    Parser.parse(json) match {
       case ast: AstValue =>
-        assert(Json.format(ast) == json, "json not equals")
+        assert(Parser.format(ast) == json, "json not equals")
       case thing => fail(s"expect AstValue, but received $thing")
     }
   }
@@ -82,9 +82,9 @@ class JsonParserTest extends AnyFunSuite:
     val json =
       """{"name": "Bob", "address": {"city": "Los Angeles", "zipcode": 90001}, "contacts": [{"type": "email", "value": "bob@example.com"}, {"type": "phone", "value": "123-456-7890"}]}"""
 
-    Json.parse(json) match {
+    Parser.parse(json) match {
       case ast: AstValue =>
-        assert(Json.format(ast) == json, "json not equals")
+        assert(Parser.format(ast) == json, "json not equals")
       case thing => fail(s"expect AstValue, but received $thing")
     }
   }
@@ -94,9 +94,9 @@ class JsonParserTest extends AnyFunSuite:
     val json =
       """{"name": "Jane", "age": 35, "hobbies": []}"""
 
-    Json.parse(json) match {
+    Parser.parse(json) match {
       case ast: AstValue =>
-        assert(Json.format(ast) == json, "json not equals")
+        assert(Parser.format(ast) == json, "json not equals")
       case thing => fail(s"expect AstValue, but received $thing")
     }
   }
@@ -106,9 +106,9 @@ class JsonParserTest extends AnyFunSuite:
     val json =
       """[{"name": "John", "age": 30, "isActive": true}, {"name": "Alice", "age": 28, "isActive": false}]"""
 
-    Json.parse(json) match {
+    Parser.parse(json) match {
       case ast: AstValue =>
-        assert(Json.format(ast) == json, "json not equals")
+        assert(Parser.format(ast) == json, "json not equals")
       case thing => fail(s"expect AstValue, but received $thing")
     }
   }
@@ -118,9 +118,9 @@ class JsonParserTest extends AnyFunSuite:
     val json =
       """{"name": "Charlie", "details": {"languages": ["English", "Spanish"], "addresses": [{"city": "New York", "zipcode": 10001}, {"city": "Los Angeles", "zipcode": 90001}]}}"""
 
-    Json.parse(json) match {
+    Parser.parse(json) match {
       case ast: AstValue =>
-        assert(Json.format(ast) == json, "json not equals")
+        assert(Parser.format(ast) == json, "json not equals")
       case thing => fail(s"expect AstValue, but received $thing")
     }
   }
@@ -130,9 +130,9 @@ class JsonParserTest extends AnyFunSuite:
     val json =
       """{"name": null, "age": null, "balance": null}"""
 
-    Json.parse(json) match {
+    Parser.parse(json) match {
       case ast: AstValue =>
-        assert(Json.format(ast) == json, "json not equals")
+        assert(Parser.format(ast) == json, "json not equals")
       case thing => fail(s"expect AstValue, but received $thing")
     }
   }
@@ -142,9 +142,9 @@ class JsonParserTest extends AnyFunSuite:
     val json =
       """{"name": "David", "details": {"languages": ["English", null, "Spanish"], "addresses": [{"city": "New York", "zipcode": 10001}, null]}}"""
 
-    Json.parse(json) match {
+    Parser.parse(json) match {
       case ast: AstValue =>
-        assert(Json.format(ast) == json, "json not equals")
+        assert(Parser.format(ast) == json, "json not equals")
       case thing => fail(s"expect AstValue, but received $thing")
     }
   }
@@ -154,9 +154,9 @@ class JsonParserTest extends AnyFunSuite:
     val json =
       """["John", 30, true, {"city": "New York", "zipcode": 10001}]"""
 
-    Json.parse(json) match {
+    Parser.parse(json) match {
       case ast: AstValue =>
-        assert(Json.format(ast) == json, "json not equals")
+        assert(Parser.format(ast) == json, "json not equals")
       case thing => fail(s"expect AstValue, but received $thing")
     }
   }
@@ -167,9 +167,9 @@ class JsonParserTest extends AnyFunSuite:
   test("large object with nested arrays and objects") {
     val json = """{"name": "John", "age": 30, "address": {"city": "New York", "zipcode": 10001}, "tags": ["tag1", "tag2"], "contacts": [{"type": "email", "value": "john@example.com"}, {"type": "phone", "value": "123-456-7890"}], "details": {"education": [{"degree": "Bachelor", "university": "XYZ University", "year": 2010}, {"degree": "Master", "university": "ABC University", "year": 2015}], "employment": [{"company": "Tech Corp", "position": "Software Engineer", "years": 5}, {"company": "Data Corp", "position": "Data Analyst", "years": 3}]}}"""
 
-    Json.parse(json) match {
+    Parser.parse(json) match {
       case ast: AstValue =>
-        assert(Json.format(ast) == json, "json not equals")
+        assert(Parser.format(ast) == json, "json not equals")
       case thing => fail(s"expect AstValue, but received $thing")
     }
   }
@@ -178,9 +178,9 @@ class JsonParserTest extends AnyFunSuite:
   test("large array of complex objects") {
     val json = """[{"name": "John", "age": 30}, {"name": "Alice", "age": 28}, {"name": "Bob", "age": 35}, {"name": "Emma", "age": 32}, {"name": "Michael", "age": 40}]"""
 
-    Json.parse(json) match {
+    Parser.parse(json) match {
       case ast: AstValue =>
-        assert(Json.format(ast) == json, "json not equals")
+        assert(Parser.format(ast) == json, "json not equals")
       case thing => fail(s"expect AstValue, but received $thing")
     }
   }
@@ -189,9 +189,9 @@ class JsonParserTest extends AnyFunSuite:
   test("object with deeply nested structure") {
     val json = """{"name": "Alice", "details": {"personal": {"dob": "1990-05-15", "gender": "female"}, "address": {"city": "New York", "zipcode": 10001}, "education": [{"degree": "Bachelor", "university": "ABC University", "year": 2012}, {"degree": "Master", "university": "XYZ University", "year": 2015}]}}"""
 
-    Json.parse(json) match {
+    Parser.parse(json) match {
       case ast: AstValue =>
-        assert(Json.format(ast) == json, "json not equals")
+        assert(Parser.format(ast) == json, "json not equals")
       case thing => fail(s"expect AstValue, but received $thing")
     }
   }
@@ -200,9 +200,9 @@ class JsonParserTest extends AnyFunSuite:
   test("object with deeply nested arrays") {
     val json = """{"name": "Bob", "contacts": [{"type": "email", "details": [{"email": "bob@example.com", "verified": true}, {"email": "bob2@example.com", "verified": false}]}, {"type": "phone", "details": [{"phone": "123-456-7890", "verified": true}, {"phone": "987-654-3210", "verified": true}]}]}"""
 
-    Json.parse(json) match {
+    Parser.parse(json) match {
       case ast: AstValue =>
-        assert(Json.format(ast) == json, "json not equals")
+        assert(Parser.format(ast) == json, "json not equals")
       case thing => fail(s"expect AstValue, but received $thing")
     }
   }
@@ -211,9 +211,9 @@ class JsonParserTest extends AnyFunSuite:
   test("object with multiple levels of nesting") {
     val json = """{"name": "Charlie", "details": {"personal": {"dob": "1985-10-20", "gender": "male"}, "address": {"city": "Los Angeles", "zipcode": 90001}, "employment": [{"company": "Tech Corp", "position": "Software Engineer", "years": 7}, {"company": "Finance Corp", "position": "Financial Analyst", "years": 4}], "contacts": [{"type": "email", "details": [{"email": "charlie@example.com", "verified": true}]}, {"type": "phone", "details": [{"phone": "456-789-0123", "verified": true}]}]}}"""
 
-    Json.parse(json) match {
+    Parser.parse(json) match {
       case ast: AstValue =>
-        assert(Json.format(ast) == json, "json not equals")
+        assert(Parser.format(ast) == json, "json not equals")
       case thing => fail(s"expect AstValue, but received $thing")
     }
   }

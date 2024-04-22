@@ -2,7 +2,8 @@ package br.com.mobilemind.json.codec.converter
 
 import DecoderItem.SimpleDecoder
 import br.com.mobilemind.json.codec.infra.macros.createInstance
-import base._
+import base.*
+
 import java.util.Date
 import scala.collection.mutable
 
@@ -291,6 +292,7 @@ class Decoder[T](val options: Option[DecodeOptions] = None)(using
         op(obj, json, opts)
 
 object Decoder:
+
   inline def typ[T](options: Option[DecodeOptions] = None): Decoder[T] =
     given creator: (() => T) = () => createInstance[T]
     Decoder(options)
@@ -298,3 +300,32 @@ object Decoder:
   inline def typ[T](using j: JsonCreator): Decoder[T] =
     given creator: (() => T) = () => createInstance[T]
     Decoder()
+
+  object dsl:
+
+    inline def of[T](using JsonCreator): Decoder[T] =
+      Decoder.typ
+
+    def field[T, A](name: String, f: (T, A) => T)(
+        decoder: Decoder[T]
+    ): Decoder[T] =
+      decoder.field[A](name, f)
+
+    def ref[T, A](
+        name: String,
+        f: (T, A) => T,
+        opts: Option[DecodeOptions] = None
+    )(decoder: Decoder[T])(using d: Decoder[A]): Decoder[T] =
+      decoder.ref(name, f, opts)
+
+    def list[T, A](name: String, f: (T, List[A]) => T)(
+        decoder: Decoder[T]
+    ): Decoder[T] =
+      decoder.list(name, f)
+
+    def listRef[T, A](name: String, f: (T, List[A]) => T)(
+        decoder: Decoder[T]
+    )(using d: Decoder[A]): Decoder[T] =
+      decoder.listRef(name, f)
+
+    extension [A, B](a: A) infix def |>(f: A => B): B = f(a)

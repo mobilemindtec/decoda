@@ -28,27 +28,27 @@ object infra:
       fields.put(name, value)
 
     override def stringify(): String =
-      val l = fieldsNames.map:
-        k =>
-          fields.get(k) match
-            case Some(j: JsonObject) => s""""$k": ${j.stringify()}"""
-            case Some(l: List[_]) =>
-              l.headOption match
-                case Some(_: JsonObject) =>
-                  s""""$k": [${l.asInstanceOf[List[JsonObject]].map(_.stringify()).mkString(", ")}]"""
-                case _ =>
-                  s""""$k": [${l.mkString(", ")}]"""
-            case Some(v) =>
-              v match
-                case _ :String => s""""$k": "$v""""
-                case _ => s""""$k": $v"""
-            case _ => s""""$k": "???""""
+      val l = fieldsNames.map: k =>
+        fields.get(k) match
+          case Some(j: JsonObject) => s""""$k": ${j.stringify()}"""
+          case Some(l: List[_]) =>
+            l.headOption match
+              case Some(_: JsonObject) =>
+                s""""$k": [${l
+                    .asInstanceOf[List[JsonObject]]
+                    .map(_.stringify())
+                    .mkString(", ")}]"""
+              case _ =>
+                s""""$k": [${l.mkString(", ")}]"""
+          case Some(v) =>
+            v match
+              case _: String => s""""$k": "$v""""
+              case _         => s""""$k": $v"""
+          case _ => s""""$k": "???""""
 
       s"{${l.mkString(", ")}}"
 
     override def toString: String = fields.toString()
-
-    override def parser(json: String): base.Json = ???
 
   object Json:
     def apply(values: (String, Any)*): Json = new Json().addAll(values.toMap)
@@ -69,17 +69,21 @@ object infra:
 
     override def toString: String = items.toString()
 
+    override def stringify(): String = toString
+
   object JArray:
     def apply(vs: Any*): JArray = new JArray().addAll(vs)
 
 object models:
   case class Group(id: Int = 0, description: String = "")
 
-  case class Person(id: Int = 0,
-                    name: String = "",
-                    group: Group = null,
-                    groups: Option[List[Group]] = None,
-                    groups2: List[Group] = Nil,
-                    birthday: Option[Date] = None,
-                    paymentDays: List[Int] = Nil,
-                    age: Option[Int] = None)
+  case class Person(
+      id: Int = 0,
+      name: String = "",
+      group: Group = null,
+      groups: Option[List[Group]] = None,
+      groups2: List[Group] = Nil,
+      birthday: Option[Date] = None,
+      paymentDays: List[Int] = Nil,
+      age: Option[Int] = None
+  )

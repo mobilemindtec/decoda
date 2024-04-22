@@ -1,9 +1,11 @@
 package br.com.mobilemind.json.codec.parser
 
+import br.com.mobilemind.json.codec.JsonCodecException
+
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
 
-object Json:
+object Parser:
 
   import TokenType._
   import AstValue._
@@ -24,18 +26,18 @@ object Json:
 
   extension (token: TokenType)
     def toString: String = token match
-      case LeftBrace => "{"
-      case RightBrace => "}"
-      case LeftBracket => "["
+      case LeftBrace    => "{"
+      case RightBrace   => "}"
+      case LeftBracket  => "["
       case RightBracket => "]"
-      case Colon => ":"
-      case Comma => ","
-      case Str(s) => s"S:$s"
-      case Num(s) => s"N:$s"
-      case True => "B:true"
-      case False => "B:false"
-      case Null => "U:null"
-      case NewLine => "\n"
+      case Colon        => ":"
+      case Comma        => ","
+      case Str(s)       => s"S:$s"
+      case Num(s)       => s"N:$s"
+      case True         => "B:true"
+      case False        => "B:false"
+      case Null         => "U:null"
+      case NewLine      => "\n"
 
   case class AstProp(name: String, value: AstValue)
 
@@ -45,6 +47,7 @@ object Json:
     case DoubleLiteral(f: Double)
     case IntLiteral(i: Int)
     case LongLiteral(i: Long)
+    case ShortLiteral(i: Short)
     case BoolLiteral(b: Boolean)
     case NullLiteral
     case ArrayAst(items: Array[AstValue] = Array())
@@ -54,74 +57,84 @@ object Json:
     def toString: String =
       value match
         case StringLiteral(v) => v
-        case FloatLiteral(v) => v.toString
+        case FloatLiteral(v)  => v.toString
         case DoubleLiteral(v) => v.toString
-        case IntLiteral(v) => v.toString
-        case LongLiteral(v) => v.toString
-        case BoolLiteral(v) => if v then "true" else "false"
-        case NullLiteral => "null"
-        case obj: ObjectAst => "[object]"
-        case arr: ArrayAst => "[array]"
+        case IntLiteral(v)    => v.toString
+        case LongLiteral(v)   => v.toString
+        case ShortLiteral(v)  => v.toString
+        case BoolLiteral(v)   => if v then "true" else "false"
+        case NullLiteral      => "null"
+        case obj: ObjectAst   => "[object]"
+        case arr: ArrayAst    => "[array]"
 
     def toRawValue: Any =
       value match
         case StringLiteral(v: String) => v
-        case FloatLiteral(v: Float) => v
+        case FloatLiteral(v: Float)   => v
         case DoubleLiteral(v: Double) => v
-        case IntLiteral(v: Int) => v
-        case LongLiteral(v: Long) => v
-        case BoolLiteral(v: Boolean) => v
-        case NullLiteral => null
-        case obj: ObjectAst => obj.toMap
-        case arr: ArrayAst => arr.toSeqRawValue
+        case IntLiteral(v: Int)       => v
+        case LongLiteral(v: Long)     => v
+        case ShortLiteral(v: Short)   => v
+        case BoolLiteral(v: Boolean)  => v
+        case NullLiteral              => null
+        case obj: ObjectAst           => obj.toMap
+        case arr: ArrayAst            => arr.toSeqRawValue
 
   extension (arr: ArrayAst)
     def toSeqRawValue: Seq[Any] =
       arr.items.map {
         case obj: ObjectAst => obj.toMap
-        case arr: ArrayAst => arr.toSeqRawValue
-        case v: AstValue => v.toRawValue
+        case arr: ArrayAst  => arr.toSeqRawValue
+        case v: AstValue    => v.toRawValue
       }
 
-  extension(value: ObjectAst)
+  extension (value: ObjectAst)
     def toMap: Map[String, Any] =
-      value.props.foldLeft(Map[String, Any]()) {
-        (map, prop) =>
-          val raw =
-            prop.value match
-              case obj: ObjectAst => obj.toMap
-              case arr: ArrayAst => arr.toSeqRawValue
-              case _ => prop.value.toRawValue
-          map + (prop.name -> raw)
+      value.props.foldLeft(Map[String, Any]()) { (map, prop) =>
+        val raw =
+          prop.value match
+            case obj: ObjectAst => obj.toMap
+            case arr: ArrayAst  => arr.toSeqRawValue
+            case _              => prop.value.toRawValue
+        map + (prop.name -> raw)
       }
-  
+
   private def selectValueType(value: String) =
     value match
-      case "true" => True
+      case "true"  => True
       case "false" => False
-      case "null" => Null
-      case _ => Num(value)
+      case "null"  => Null
+      case _       => Num(value)
 
   @tailrec
-  private def findString(str: List[Char], acc: List[Char] = Nil): (List[Char], List[Char]) =
+  private def findString(
+      str: List[Char],
+      acc: List[Char] = Nil
+  ): (List[Char], List[Char]) =
     str match
       case '"' :: xs => (acc, xs)
-      case x :: xs => findString(xs, acc :+ x)
-      case _ => throw new Exception("premature end of string")
+      case x :: xs   => findString(xs, acc :+ x)
+      case _         => throw new JsonCodecException("premature end of string")
 
   @tailrec
-  private def findValue(str: List[Char], acc: List[Char] = Nil): (TokenType, List[Char], List[Char]) =
+  private def findValue(
+      str: List[Char],
+      acc: List[Char] = Nil
+  ): (TokenType, List[Char], List[Char]) =
     str match
       case '\n' :: xs => (NewLine, acc, xs)
-      case ',' :: xs => (Comma, acc, xs)
-      case '}' :: xs => (RightBrace, acc, xs)
-      case ']' :: xs => (RightBracket, acc, xs)
-      case ' ' :: xs => findValue(xs, acc)
-      case x :: xs => findValue(xs, acc :+ x)
-      case _ => throw new Exception("premature end of value")
+      case ',' :: xs  => (Comma, acc, xs)
+      case '}' :: xs  => (RightBrace, acc, xs)
+      case ']' :: xs  => (RightBracket, acc, xs)
+      case ' ' :: xs  => findValue(xs, acc)
+      case x :: xs    => findValue(xs, acc :+ x)
+      case _          => throw new JsonCodecException("premature end of value")
 
   @tailrec
-  private def createTokens(str: List[Char], acc: List[TokenType] = Nil): List[TokenType] =
+  private def createTokens(
+      str: List[Char],
+      acc: List[TokenType] = Nil
+  ): List[TokenType] =
     str match
       case (' ' | '\n') :: xs =>
         createTokens(xs, acc)
@@ -143,7 +156,10 @@ object Json:
       case Nil => acc
 
   @tailrec
-  private def parseTokenToArray(tokens: List[TokenType], acc: Array[AstValue] = Array()): (List[TokenType], Array[AstValue]) =
+  private def parseTokenToArray(
+      tokens: List[TokenType],
+      acc: Array[AstValue] = Array()
+  ): (List[TokenType], Array[AstValue]) =
     tokens match
       case RightBracket :: rest => (rest, acc)
       case token :: rest =>
@@ -152,16 +168,19 @@ object Json:
       case Nil => (Nil, acc)
 
   @tailrec
-  private def parseTokenToAst(token: TokenType, rest: List[TokenType] = Nil): (AstValue, List[TokenType]) =
+  private def parseTokenToAst(
+      token: TokenType,
+      rest: List[TokenType] = Nil
+  ): (AstValue, List[TokenType]) =
     token match
       case Str(s) => (StringLiteral(s), rest)
       case Num(s) =>
         if s.contains('.')
         then (DoubleLiteral(s.toFloat), rest)
         else (LongLiteral(s.toInt), rest)
-      case True => (BoolLiteral(true), rest)
+      case True  => (BoolLiteral(true), rest)
       case False => (BoolLiteral(false), rest)
-      case Null => (NullLiteral, rest)
+      case Null  => (NullLiteral, rest)
       case LeftBrace =>
         val (props, rst) = parseTokenToProperties(rest, Nil)
         (ObjectAst(props), rst)
@@ -169,18 +188,22 @@ object Json:
         val (rst, arr) = parseTokenToArray(rest, Array())
         (ArrayAst(arr), rst)
       case Comma | NewLine => parseTokenToAst(rest.head, rest.tail)
-      case _ => throw new Exception("wrong token type ${token.toString}")
+      case _ =>
+        throw new JsonCodecException("wrong token type ${token.toString}")
 
   @tailrec
-  private def parseTokenToProperties(tokens: List[TokenType], props: List[AstProp]): (List[AstProp], List[TokenType]) =
+  private def parseTokenToProperties(
+      tokens: List[TokenType],
+      props: List[AstProp]
+  ): (List[AstProp], List[TokenType]) =
     tokens match
-      //field:value::rest
+      // field:value::rest
       case Str(fld) :: _ :: v :: xs =>
         val (literal, rst) = parseTokenToAst(v, xs)
         parseTokenToProperties(rst, props :+ AstProp(fld, literal))
       case (Comma | NewLine) :: xs => parseTokenToProperties(xs, props)
-      case RightBrace :: rts => (props, rts)
-      case _ => throw new Exception("wrong end prop type")
+      case RightBrace :: rts       => (props, rts)
+      case _ => throw new JsonCodecException("wrong end prop type")
 
   private def parseTokens(tokens: List[TokenType]) = tokens match
     case x :: xs =>
@@ -192,10 +215,10 @@ object Json:
   def tokenize(str: List[Char]): List[TokenType] =
     str match
       case (' ' | '\n') :: xs => tokenize(xs)
-      case '{' :: _ => createTokens(str)
-      case '[' :: _ => createTokens(str)
-      case '"' :: _ => createTokens(str)
-      case _ => selectValueType(str.mkString) :: Nil
+      case '{' :: _           => createTokens(str)
+      case '[' :: _           => createTokens(str)
+      case '"' :: _           => createTokens(str)
+      case _                  => selectValueType(str.mkString) :: Nil
 
   def parse(str: String, debug: Boolean = false): AstValue =
     val tokens = tokenize(str.toList)
@@ -208,16 +231,16 @@ object Json:
     ast match
       case StringLiteral(s: String) => s"\"$s\""
       case DoubleLiteral(f: Double) => f"$f%1.2f"
-      case FloatLiteral(f: Float) => f"$f%1.2f"
-      case IntLiteral(i: Int) => i.toString
-      case LongLiteral(i: Long) => i.toString
-      case BoolLiteral(b: Boolean) => b.toString
-      case NullLiteral => "null"
+      case FloatLiteral(f: Float)   => f"$f%1.2f"
+      case IntLiteral(i: Int)       => i.toString
+      case LongLiteral(i: Long)     => i.toString
+      case ShortLiteral(i: Short)   => i.toString
+      case BoolLiteral(b: Boolean)  => b.toString
+      case NullLiteral              => "null"
       case ArrayAst(l: Array[AstValue]) =>
-
         val str =
-          l.foldLeft(StringBuilder("[")) {
-            (acc, v) => acc.append(format(v)).append(", ")
+          l.foldLeft(StringBuilder("[")) { (acc, v) =>
+            acc.append(format(v)).append(", ")
           }
 
         if str.endsWith(", ")
@@ -226,16 +249,14 @@ object Json:
         str.append("]").toString()
 
       case ObjectAst(l: Seq[AstProp]) =>
-
         val str =
-          l.foldLeft(StringBuilder("{")) {
-            (acc, v) =>
-              acc
-                .append("\"")
-                .append(v.name)
-                .append("\": ")
-                .append(format(v.value))
-                .append(", ")
+          l.foldLeft(StringBuilder("{")) { (acc, v) =>
+            acc
+              .append("\"")
+              .append(v.name)
+              .append("\": ")
+              .append(format(v.value))
+              .append(", ")
 
           }
 
@@ -254,7 +275,7 @@ object Json:
     printAst(ast)
     println("\n<== ast")
 
-  private def printAst (node: AstValue): Unit =
+  private def printAst(node: AstValue): Unit =
     node match
       case ArrayAst(values) =>
         print("[")
@@ -262,11 +283,10 @@ object Json:
         print("]")
       case ObjectAst(props) =>
         print("{")
-        props.foreach {
-          it =>
-            print(s"${it.name}=")
-            printAst(it.value)
-            print(",")
+        props.foreach { it =>
+          print(s"${it.name}=")
+          printAst(it.value)
+          print(",")
         }
         print("}")
       case other => print(other.toString)
@@ -274,7 +294,7 @@ object Json:
   @tailrec
   private def printTokens(tokens: List[TokenType]): Unit =
     tokens match
-      case  x :: xs =>
+      case x :: xs =>
         print(s"${x.toString}, ")
         printTokens(xs)
       case Nil => print("\n")
