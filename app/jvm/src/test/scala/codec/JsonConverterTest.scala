@@ -10,7 +10,9 @@ import org.scalatest.funsuite.AnyFunSuite
 class JsonConverterTest extends AnyFunSuite:
 
   given JsonCreator with
-    override def empty: base.JsonObject = new defs.JsonObject()
+    def obj: base.JsonObject = new defs.JsonObject()
+
+    def arr: base.JsonArray = new defs.JsonArray()
 
   test("native converter test") {
 

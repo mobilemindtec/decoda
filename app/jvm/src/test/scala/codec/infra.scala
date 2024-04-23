@@ -53,9 +53,9 @@ object infra:
   object Json:
     def apply(values: (String, Any)*): Json = new Json().addAll(values.toMap)
 
-  class JArray extends JsonArray:
+  class JArray(vs: Seq[Any] = Nil) extends JsonArray:
 
-    private val items = mutable.ListBuffer[Any]()
+    private val items = mutable.ListBuffer.from(vs)
 
     override def add(v: Any): Unit = items.addOne(v)
 
@@ -63,16 +63,15 @@ object infra:
 
     override def size: Int = items.size
 
-    def addAll(data: Seq[Any]): JArray =
-      items.addAll(data)
-      this
+    override def addAll(vs: Seq[Any]): Unit =
+      items.addAll(vs)
 
     override def toString: String = items.toString()
 
     override def stringify(): String = toString
 
   object JArray:
-    def apply(vs: Any*): JArray = new JArray().addAll(vs)
+    def apply(vs: Any*): JArray = new JArray(vs)
 
 object models:
   case class Group(id: Int = 0, description: String = "")

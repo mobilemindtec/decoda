@@ -26,6 +26,7 @@ object base:
     def get(i: Int): Any
     def size: Int
     def add(v: Any): Unit
+    def addAll(vs: Seq[Any]): Unit
 
     def map[T](f: Any => T): List[T] =
       val buff = mutable.ListBuffer[T]()
@@ -33,7 +34,8 @@ object base:
       buff.toList
 
   trait JsonParser:
-    def parse(s: String): JsonObject
+    def parse(s: String): Json
 
   trait JsonCreator:
-    def empty: JsonObject
+    def obj: JsonObject
+    def arr: JsonArray

@@ -1,163 +1,101 @@
 package br.com.mobilemind.json.codec.converter
 
-import EncoderItem.SimpleEncoder
-import OptOmit.{NoOmit, OmitNull}
-import base._
+import br.com.mobilemind.json.codec.JsonCodecException
+import br.com.mobilemind.json.codec.converter.OptOmit.NoOmit
+import br.com.mobilemind.json.codec.converter.base.*
 
 import java.util.Date
 import scala.collection.mutable
 
-type EncoderFn[T] = (T, JsonObject, Option[EncodeOptions]) => JsonObject
+case class EncodeOptions(
+    opt: OptOmit = NoOmit,
+    pattern: String = "",
+    df: Option[DateFormatter] = None
+)
 
-case class EncodeOptions(opt: OptOmit = NoOmit,
-                         pattern: String = "",
-                         df: Option[DateFormatter] = None,
-                        )
+trait DataEncoder[T]:
+  def encode(v: T): Any
 
-trait EncoderBase[T]:
-  def encode(data: T): String
-  def encodeAsJson(data: T): JsonObject
+case class EncoderMedaTada[T, S](
+    name: String,
+    opts: Option[EncodeOptions] = None,
+    encoder: DataEncoder[S],
+    f: T => S
+):
+  def fnApply(obj: T): Any =
+    encoder.encode(f(obj))
 
-enum EncoderItem:
-  case SimpleEncoder[T](v: EncoderFn[T], opts: Option[EncodeOptions] = None)
+class Encoder[T](using jsonCreator: JsonCreator) extends DataEncoder[T]:
+  private val fns = mutable.Buffer.empty[EncoderMedaTada[T, ?]]
 
-class Encoder[T](options: Option[EncodeOptions] = None)(using jsonCreator: JsonCreator) extends EncoderBase[T]:
-
-  var fields = mutable.ListBuffer[EncoderItem]()
-
-  private def setJsonValue(name: String, json: JsonObject, value: Any, opts: Option[EncodeOptions]) =
-
-    val (v, set) = value match
-      case Some(i) =>
-        i match
-          case d: Date =>
-            opts.orElse(options) match
-              case Some(EncodeOptions(_, patter, Some(df))) =>
-                if patter.isEmpty
-                then (d, true)
-                else (df.format(d, patter), true)
-              case _ => (i, true)
-          case _ => (i, true)
-      case None =>
-        opts.orElse(options) match
-          case Some(EncodeOptions(OmitNull, _,_)) => (null, false)
-          case _ => (null, true)
-      case other => (other, true)
-
-    if set
-    then json.setByName(name, v)
-
-  private def setfn[S](name: String, f: T => S)(obj:T, json: JsonObject, opts: Option[EncodeOptions]): JsonObject =
-    setJsonValue(name, json, f(obj), opts)
-    json
-
-  def field[S](name: String, f: T => S, opts: Option[EncodeOptions] = None): Encoder[T] =
-    fields.addOne(SimpleEncoder(setfn(name, f), opts))
+  def add(fn: EncoderMedaTada[T, ?]): Encoder[T] =
+    fns.addOne(fn)
     this
 
-  def ref[S](name: String, f: T => S, opts: Option[EncodeOptions] = None)(using encoder: Encoder[S]) : Encoder[T] =
-    val fn: (T, JsonObject, Option[EncodeOptions]) => JsonObject = {
-      case (obj, json, opts) =>
-        setJsonValue(name, json, encoder.encodeAsJson(f(obj)), opts)
-        json
+  override def encode(obj: T): Any =
+    fns.foldLeft(jsonCreator.obj) { (json, fd) =>
+      fd.fnApply(obj) match
+        case null =>
+          if fd.opts.exists(_.opt == NoOmit)
+          then json.setByName(fd.name, null)
+        case v =>
+          val df = fd.opts.flatMap(_.df)
+          val pattern = fd.opts.map(_.pattern)
+          if df.isEmpty || pattern.isEmpty
+          then json.setByName(fd.name, v)
+          else json.setByName(fd.name, df.map(_.format(v.asInstanceOf[Date], pattern.get)).get)
+      json
     }
-    fields.addOne(SimpleEncoder(fn, opts))
-    this
-  
-  def string(name: String, f: T => String, opts: Option[EncodeOptions] = None): Encoder[T] =
-    field(name, f, opts)
 
-  def int(name: String, f: T => Int, opts: Option[EncodeOptions] = None): Encoder[T] =
-    field(name, f, opts)
-
-  def bool(name: String, f: T => Boolean, opts: Option[EncodeOptions] = None): Encoder[T] =
-    field(name, f, opts)
-
-  def long(name: String, f: T => Long, opts: Option[EncodeOptions] = None): Encoder[T] =
-    field(name, f, opts)
-
-  def float(name: String, f: T => Float, opts: Option[EncodeOptions] = None): Encoder[T] =
-    field(name, f, opts)
-
-  def double(name: String, f: T => Double, opts: Option[EncodeOptions] = None): Encoder[T] =
-    field(name, f, opts)
-
-  def date(name: String, f: T => Date, opts: Option[EncodeOptions] = None)(using df: DateFormatter): Encoder[T] =
-    field(name, f, opts.map(_.copy(df = Some(df))))
-
-  def list[S](name: String, f: T => List[S], opts: Option[EncodeOptions] = None): Encoder[T] =
-    field(name, f, opts)
-
-  def listRef[S](name: String, f: T => List[S], opts: Option[EncodeOptions] = None)(using encoder: Encoder[S]): Encoder[T] =
-    val fn: (T, JsonObject, Option[EncodeOptions]) => JsonObject = {
-      case (obj, json, opts) =>
-        val array = f(obj).map(encoder.encodeAsJson)
-        setJsonValue(name, json, array, opts)
-        json
-    }
-    fields.addOne(SimpleEncoder(fn, opts))
-    this
-
-  def optField[S](name: String, f: T => Option[S], opts: Option[EncodeOptions] = None): Encoder[T] =
-    field(name, f, opts)
-
-  def optRef[S](name: String, f: T => Option[S], opts: Option[EncodeOptions] = None)(using encoder: Encoder[S]): Encoder[T] =
-    val fn: (T, JsonObject, Option[EncodeOptions]) => JsonObject = {
-      case (obj, json, opts) =>
-        val opt = f(obj).map(encoder.encodeAsJson)
-        setJsonValue(name, json, opt, opts)
-        json
-    }
-    fields.addOne(SimpleEncoder(fn, opts))
-    this
-
-  def optString(name: String, f: T => Option[String], opts: Option[EncodeOptions] = None): Encoder[T] =
-    optField(name, f, opts)
-
-  def optInt(name: String, f: T => Option[Int], opts: Option[EncodeOptions] = None): Encoder[T] =
-    optField(name, f, opts)
-
-  def optBool(name: String, f: T => Option[Boolean], opts: Option[EncodeOptions] = None): Encoder[T] =
-    optField(name, f, opts)
-
-  def optLong(name: String, f: T => Option[Long], opts: Option[EncodeOptions] = None): Encoder[T] =
-    optField(name, f, opts)
-
-  def optFloat(name: String, f: T => Option[Float], opts: Option[EncodeOptions] = None): Encoder[T] =
-    optField(name, f, opts)
-
-  def optDouble(name: String, f: T => Option[Double], opts: Option[EncodeOptions] = None): Encoder[T] =
-    optField(name, f, opts)
-
-  def optDate(name: String, f: T => Option[Date], opts: Option[EncodeOptions] = None)(using df: DateFormatter): Encoder[T] =
-    optField(name, f, opts.map(_.copy(df = Some(df))))
-
-  def optList[S](name: String, f: T => Option[List[S]], opts: Option[EncodeOptions] = None): Encoder[T] =
-    optField(name, f, opts)
-
-  def optListRef[S](name: String, f: T => Option[List[S]], opts: Option[EncodeOptions] = None)(using encoder: Encoder[S]): Encoder[T] =
-    val fn: (T, JsonObject, Option[EncodeOptions]) => JsonObject = {
-      case (obj, json, opts) =>
-        val array = f(obj).map(_.map(encoder.encodeAsJson))
-        setJsonValue(name, json, array, opts)
-        json
-    }
-    fields.addOne(SimpleEncoder(fn, opts))
-    this
-
-  override def encode(obj: T): String =
-    encodeAsJson(obj).stringify()
-
-  override def encodeAsJson(obj: T): JsonObject =
-    fields.foldLeft(jsonCreator.empty):
-      case (j, SimpleEncoder(f: EncoderFn[T], opts)) =>
-        f(obj, j, opts)
-
+  def encodeAsString(obj: T): String =
+    encode(obj) match
+      case jsonObject: JsonObject =>
+        jsonObject.stringify()
+      case _ => throw new JsonCodecException(s"can't decode obj $obj")
 
 object Encoder:
 
-  inline def typ[T](options: Option[EncodeOptions] = None)(using JsonCreator): Encoder[T] =
-    Encoder(options)
+  given DataEncoder[String] with
+    override def encode(v: String): Any = v
 
-  inline def typ[T](using j: JsonCreator): Encoder[T] =
-    Encoder()
+  given DataEncoder[Short] with
+    override def encode(v: Short): Any = v
+
+  given DataEncoder[Int] with
+    override def encode(v: Int): Any = v
+
+  given DataEncoder[Long] with
+    override def encode(v: Long): Any = v
+
+  given DataEncoder[Float] with
+    override def encode(v: Float): Any = v
+
+  given DataEncoder[Double] with
+    override def encode(v: Double): Any = v
+
+  given DataEncoder[Boolean] with
+    override def encode(v: Boolean): Any = v
+
+  given DataEncoder[Date] with
+    override def encode(v: Date): Any = v
+
+  given OptionEncoderCodec[T](using encoder: DataEncoder[T]): DataEncoder[Option[T]] with
+    override def encode(v: Option[T]): Any = v.orNull
+
+  given SeqEncoderCodec[T](using encoder: DataEncoder[T]): DataEncoder[Seq[T]] with
+    override def encode(vs: Seq[T]): Any =
+      vs.map(encoder.encode)
+
+  given ListEncoderCodec[T](using encoder: DataEncoder[T]): DataEncoder[List[T]] with
+    override def encode(vs: List[T]): Any =
+      vs.map(encoder.encode)
+
+  given SetEncoderCodec[T](using encoder: DataEncoder[T]): DataEncoder[Set[T]] with
+    override def encode(vs: Set[T]): Any =
+      vs.map(encoder.encode)
+
+  inline def typ[T](using JsonCreator): Encoder[T] =
+    new Encoder()
+
+  inline def field[T, S](name: String, f: T => S)(encoder: Encoder[T])(using dataEncoder: DataEncoder[S]): Encoder[T] =
+    encoder.add(EncoderMedaTada(name, None, dataEncoder, f))

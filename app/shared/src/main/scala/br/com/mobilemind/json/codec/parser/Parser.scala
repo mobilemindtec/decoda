@@ -176,7 +176,7 @@ object Parser:
       case Str(s) => (StringLiteral(s), rest)
       case Num(s) =>
         if s.contains('.')
-        then (DoubleLiteral(s.toFloat), rest)
+        then (DoubleLiteral(s.toDouble), rest)
         else (LongLiteral(s.toInt), rest)
       case True  => (BoolLiteral(true), rest)
       case False => (BoolLiteral(false), rest)
@@ -203,7 +203,7 @@ object Parser:
         parseTokenToProperties(rst, props :+ AstProp(fld, literal))
       case (Comma | NewLine) :: xs => parseTokenToProperties(xs, props)
       case RightBrace :: rts       => (props, rts)
-      case _ => throw new JsonCodecException("wrong end prop type")
+      case _                       => throw new JsonCodecException("wrong end prop type")
 
   private def parseTokens(tokens: List[TokenType]) = tokens match
     case x :: xs =>

@@ -10,8 +10,10 @@ import scala.collection.mutable
 
 object defs:
 
+  extension [A, B](a: A) infix def |>(f: A => B): B = f(a)
+
   object Json:
-    def parser(json: String): Json =
+    def parse(json: String): Json =
       Parser.parse(json) match
         case obj: ObjectAst => new JsonObject(obj.props)
         case arr: ArrayAst  => new JsonArray(arr.items)
@@ -60,6 +62,9 @@ object defs:
       v match
         case ast: AstValue => items.append(ast)
         case _             => items.append(selectAstType(v))
+
+    override def addAll(vs: Seq[Any]): Unit =
+      vs.foreach(add)
 
     override def stringify(): String =
       Parser.format(toAstValue)
