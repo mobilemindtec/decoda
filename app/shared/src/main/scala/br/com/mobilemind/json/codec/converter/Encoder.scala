@@ -33,7 +33,7 @@ class Encoder[T](using jsonCreator: JsonCreator) extends DataEncoder[T]:
     this
 
   override def encode(obj: T): Any =
-    fns.foldLeft(jsonCreator.obj) { (json, fd) =>
+    fns.foldLeft(jsonCreator.mkObject) { (json, fd) =>
       fd.fnApply(obj) match
         case null =>
           if fd.opts.exists(_.opt == NoOmit)
@@ -47,13 +47,20 @@ class Encoder[T](using jsonCreator: JsonCreator) extends DataEncoder[T]:
       json
     }
 
-  def encodeAsString(obj: T): String =
-    encode(obj) match
-      case jsonObject: JsonObject =>
-        jsonObject.stringify()
-      case _ => throw new JsonCodecException(s"can't decode obj $obj")
+  def encodeObject(obj: T): String =
+    encode(obj).asInstanceOf[JsonObject].stringify()
+
+  def encodeArray(items: Seq[T]): String =
+    val encodedItems =
+      items.map(encode).map(_.asInstanceOf[JsonObject])
+    val arr = jsonCreator.mkArray
+    arr.addAll(encodedItems)
+    arr.stringify()
 
 object Encoder:
+
+  type EncoderField[T, S] = DataEncoder[S] ?=> Encoder[T]
+  type EncoderCreator[T] = JsonCreator ?=> Encoder[T]
 
   given DataEncoder[String] with
     override def encode(v: String): Any = v
@@ -80,22 +87,28 @@ object Encoder:
     override def encode(v: Date): Any = v
 
   given OptionEncoderCodec[T](using encoder: DataEncoder[T]): DataEncoder[Option[T]] with
-    override def encode(v: Option[T]): Any = v.orNull
+    override def encode(v: Option[T]): Any =
+      v.map(encoder.encode).orNull
 
   given SeqEncoderCodec[T](using encoder: DataEncoder[T]): DataEncoder[Seq[T]] with
     override def encode(vs: Seq[T]): Any =
       vs.map(encoder.encode)
 
+  /*
   given ListEncoderCodec[T](using encoder: DataEncoder[T]): DataEncoder[List[T]] with
     override def encode(vs: List[T]): Any =
       vs.map(encoder.encode)
+   */
 
   given SetEncoderCodec[T](using encoder: DataEncoder[T]): DataEncoder[Set[T]] with
     override def encode(vs: Set[T]): Any =
       vs.map(encoder.encode)
 
-  inline def typ[T](using JsonCreator): Encoder[T] =
-    new Encoder()
+  inline def typ[T]: EncoderCreator[T] =
+    new Encoder
 
-  inline def field[T, S](name: String, f: T => S)(encoder: Encoder[T])(using dataEncoder: DataEncoder[S]): Encoder[T] =
-    encoder.add(EncoderMedaTada(name, None, dataEncoder, f))
+  inline def field[T, S](name: String, f: T => S)(encoder: Encoder[T]): EncoderField[T, S] =
+    encoder.add(EncoderMedaTada(name, None, summon[DataEncoder[S]], f))
+
+  inline def field[T, S](name: String, f: T => S, opts: EncodeOptions)(encoder: Encoder[T]): EncoderField[T, S] =
+    encoder.add(EncoderMedaTada(name, Some(opts), summon[DataEncoder[S]], f))

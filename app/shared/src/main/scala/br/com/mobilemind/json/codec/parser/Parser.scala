@@ -25,6 +25,16 @@ object Parser:
     case NewLine
 
   extension (token: TokenType)
+
+    def isValue: Boolean =
+      token match
+        case Str(_) => true
+        case Num(_) => true
+        case Null   => true
+        case True   => true
+        case False  => true
+        case _      => false
+
     def toString: String = token match
       case LeftBrace    => "{"
       case RightBrace   => "}"
@@ -136,14 +146,13 @@ object Parser:
       acc: List[TokenType] = Nil
   ): List[TokenType] =
     str match
-      case (' ' | '\n') :: xs =>
-        createTokens(xs, acc)
-      case '{' :: xs => createTokens(xs, acc :+ LeftBrace)
-      case '}' :: xs => createTokens(xs, acc :+ RightBrace)
-      case '[' :: xs => createTokens(xs, acc :+ LeftBracket)
-      case ']' :: xs => createTokens(xs, acc :+ RightBracket)
-      case ':' :: xs => createTokens(xs, acc :+ Colon)
-      case ',' :: xs => createTokens(xs, acc :+ Comma)
+      case ('\n' | ' ') :: xs => createTokens(xs, acc)
+      case '{' :: xs          => createTokens(xs, acc :+ LeftBrace)
+      case '}' :: xs          => createTokens(xs, acc :+ RightBrace)
+      case '[' :: xs          => createTokens(xs, acc :+ LeftBracket)
+      case ']' :: xs          => createTokens(xs, acc :+ RightBracket)
+      case ':' :: xs          => createTokens(xs, acc :+ Colon)
+      case ',' :: xs          => createTokens(xs, acc :+ Comma)
       case '"' :: xs =>
         val (value, rest) = findString(xs)
         val strVal = value.mkString

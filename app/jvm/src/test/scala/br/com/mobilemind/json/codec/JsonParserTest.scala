@@ -1,4 +1,4 @@
-package codec
+package br.com.mobilemind.json.codec
 
 import br.com.mobilemind.json.codec.parser.Parser
 import br.com.mobilemind.json.codec.parser.Parser.AstValue.*

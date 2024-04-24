@@ -8,6 +8,8 @@ import scala.collection.mutable
 
 case class DecodeOptions(pattern: String = "", df: Option[DateFormatter] = None)
 
+type DecoderFactory[T] = () => T
+
 trait DataDecoder[T]:
   def decode(v: Any): T
 
@@ -22,7 +24,7 @@ case class DecodeMetaData[T, S](
     f(obj, decoder.decode(v))
 
 class Decoder[T]()(using
-    factory: () => T,
+    factory: DecoderFactory[T],
     parser: JsonParser
 ) extends DataDecoder[T]:
 
@@ -49,6 +51,9 @@ class Decoder[T]()(using
     decode(parser.parse(s))
 
 object Decoder:
+
+  type DecoderField[T, S] = DataDecoder[S] ?=> Decoder[T]
+  type DecoderCreator[T] = JsonParser ?=> Decoder[T]
 
   given DataDecoder[String] with
     override def decode(v: Any): String =
@@ -102,43 +107,43 @@ object Decoder:
         case i: String  => i.toLowerCase == "true"
         case _          => throw new JsonCodecException(s"can't parse $v to Boolean")
 
-  given OptionDecoderCodec[T](using dec: DataDecoder[T]): DataDecoder[Option[T]] with
+  given OptionDecoderCodec[T](using decoder: DataDecoder[T]): DataDecoder[Option[T]] with
     override def decode(v: Any): Option[T] =
       if v == null
       then None
-      else Some(dec.decode(v))
+      else Some(decoder.decode(v))
 
-  given SeqDecoderCodec[T](using dec: DataDecoder[T]): DataDecoder[Seq[T]] with
+  given SeqDecoderCodec[T](using decoder: DataDecoder[T]): DataDecoder[Seq[T]] with
     override def decode(v: Any): Seq[T] =
       v match
         case arr: JsonArray =>
-          arr.map(dec.decode)
+          arr.map(decoder.decode)
         case _ => Seq.empty
 
-  given ListDecoderCodec[T](using dec: DataDecoder[T]): DataDecoder[List[T]] with
+  given ListDecoderCodec[T](using decoder: DataDecoder[T]): DataDecoder[List[T]] with
     override def decode(v: Any): List[T] =
       v match
         case arr: JsonArray =>
-          arr.map(dec.decode)
+          arr.map(decoder.decode)
         case _ => List.empty
 
-  given SetDecoderCodec[T](using dec: DataDecoder[T]): DataDecoder[Set[T]] with
+  given SetDecoderCodec[T](using decoder: DataDecoder[T]): DataDecoder[Set[T]] with
     override def decode(v: Any): Set[T] =
       v match
         case arr: JsonArray =>
-          arr.map(dec.decode).toSet
+          arr.map(decoder.decode).toSet
         case _ => Set.empty
 
-  inline def typ[T](using JsonParser): Decoder[T] =
+  inline def typ[T]: DecoderCreator[T] =
     given creator: (() => T) = () => createInstance[T]
-    new Decoder()
+    new Decoder
 
   inline def field[T, A](name: String, f: (T, A) => T)(
       decoder: Decoder[T]
-  )(using dd: DataDecoder[A]): Decoder[T] =
-    decoder.add(DecodeMetaData[T, A](name, dd, None, f))
+  ): DecoderField[T, A] =
+    decoder.add(DecodeMetaData[T, A](name, summon[DataDecoder[A]], None, f))
 
   inline def field[T, A](name: String, opts: DecodeOptions, f: (T, A) => T)(
       decoder: Decoder[T]
-  )(using dd: DataDecoder[A]): Decoder[T] =
-    decoder.add(DecodeMetaData[T, A](name, dd, Some(opts), f))
+  ): DecoderField[T, A] =
+    decoder.add(DecodeMetaData[T, A](name, summon[DataDecoder[A]], Some(opts), f))

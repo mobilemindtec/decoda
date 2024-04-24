@@ -1,4 +1,4 @@
-package codec
+package br.com.mobilemind.json.codec
 
 import br.com.mobilemind.json.codec.infra.annotations.JsonValue
 import br.com.mobilemind.json.codec.converter.base
@@ -10,9 +10,9 @@ import org.scalatest.funsuite.AnyFunSuite
 class JsonConverterTest extends AnyFunSuite:
 
   given JsonCreator with
-    def obj: base.JsonObject = new defs.JsonObject()
+    def mkObject: base.JsonObject = new defs.JsonObject()
 
-    def arr: base.JsonArray = new defs.JsonArray()
+    def mkArray: base.JsonArray = new defs.JsonArray()
 
   test("native converter test") {
 
@@ -30,8 +30,6 @@ class JsonConverterTest extends AnyFunSuite:
 
     val person = Person(name = "Ricardo")
     val json = person.toJson
-    println(json)
     val p = JsonConverter[Person].fromJson(json)
-    println(p)
 
   }

@@ -1,7 +1,7 @@
 package br.com.mobilemind.json.codec
 
 import br.com.mobilemind.json.codec.converter.base
-import br.com.mobilemind.json.codec.converter.base.{Json, JsonValue}
+import br.com.mobilemind.json.codec.converter.base.{Json, JsonCreator, JsonParser, JsonValue}
 import br.com.mobilemind.json.codec.parser.Parser
 import br.com.mobilemind.json.codec.parser.Parser.AstValue.*
 import br.com.mobilemind.json.codec.parser.Parser.{AstProp, AstValue}
@@ -21,8 +21,8 @@ object defs:
 
   private def selectAstType(value: Any): AstValue =
     value match
-      case s: AstValue    => s
       case s: String      => StringLiteral(s)
+      case s: Short       => ShortLiteral(s)
       case s: Int         => IntLiteral(s)
       case s: Long        => LongLiteral(s)
       case s: Float       => FloatLiteral(s)
@@ -31,12 +31,14 @@ object defs:
       case s: JsonObject  => ObjectAst(s.getProps)
       case s: JsonArray   => ArrayAst(s.getItems)
       case s: Iterable[?] => ArrayAst(s.map(selectAstType).toArray)
+      case JsonValue(v)   => selectAstType(v)
       case null           => NullLiteral
-      case _ => NullLiteral // throw new InvalidParameterException(s"$value")
+      case _              => NullLiteral // throw new InvalidParameterException(s"$value")
 
   private def extractAstValue(value: AstValue): Any =
     value match
       case StringLiteral(s) => s
+      case ShortLiteral(s)  => s
       case IntLiteral(s)    => s
       case LongLiteral(s)   => s
       case FloatLiteral(s)  => s
@@ -63,8 +65,10 @@ object defs:
         case ast: AstValue => items.append(ast)
         case _             => items.append(selectAstType(v))
 
-    override def addAll(vs: Seq[Any]): Unit =
+    override def addAll(vs: Iterable[Any]): Unit =
       vs.foreach(add)
+
+    override def toSeq: Seq[Any] = items.toSeq
 
     override def stringify(): String =
       Parser.format(toAstValue)
@@ -94,6 +98,18 @@ object defs:
     override def stringify(): String =
       Parser.format(toAstValue)
 
+    override def keys: Set[String] = props.map(_.name).toSet
+
+    override def toMap: Map[String, Any] =
+      props.map { case AstProp(k, v) =>
+        k -> extractAstValue(v)
+      }.toMap
+
+    override def toTuple: Seq[(String, Any)] =
+      props.map { case AstProp(k, v) =>
+        (k, extractAstValue(v))
+      }.toSeq
+
   object JsonObject:
 
     def apply(values: (String, Any)*): JsonObject =
@@ -107,3 +123,11 @@ object defs:
     def apply(objAst: ObjectAst): JsonObject = new JsonObject(
       objAst.props
     )
+
+  given JsonParser with
+    override def parse(s: String): base.Json = Json.parse(s)
+
+  given JsonCreator with
+    override def mkObject: base.JsonObject = defs.JsonObject()
+
+    override def mkArray: base.JsonArray = defs.JsonArray()

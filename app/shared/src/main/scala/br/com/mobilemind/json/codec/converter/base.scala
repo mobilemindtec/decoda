@@ -9,8 +9,8 @@ enum OptOmit:
 object base:
 
   trait DateFormatter:
-    def parse(date: String, patter: String): Date
-    def format(date: Date, patter: String): String
+    def parse(date: String, pattern: String): Date
+    def format(date: Date, pattern: String): String
 
   trait Json:
     def stringify(): String
@@ -21,13 +21,16 @@ object base:
   trait JsonObject extends Json:
     def getByName(name: String): Option[Any]
     def setByName(name: String, value: Any): Unit
+    def keys: Set[String]
+    def toMap: Map[String, Any]
+    def toTuple: Seq[(String, Any)]
 
   trait JsonArray extends Json:
     def get(i: Int): Any
     def size: Int
     def add(v: Any): Unit
-    def addAll(vs: Seq[Any]): Unit
-
+    def addAll(vs: Iterable[Any]): Unit
+    def toSeq: Seq[Any]
     def map[T](f: Any => T): List[T] =
       val buff = mutable.ListBuffer[T]()
       for i <- 0 until size do buff.addOne(f(get(i)))
@@ -37,5 +40,17 @@ object base:
     def parse(s: String): Json
 
   trait JsonCreator:
-    def obj: JsonObject
-    def arr: JsonArray
+    def mkObject: JsonObject
+    def mkArray: JsonArray
+
+    def fromIterable(items: Iterable[Any]): JsonArray =
+      val arr = mkArray
+      arr.addAll(items)
+      arr
+
+    def fromMap(data: Map[String, Any]): JsonObject =
+      val obj = mkObject
+      data.foreach { (k, v) =>
+        obj.setByName(k, v)
+      }
+      obj

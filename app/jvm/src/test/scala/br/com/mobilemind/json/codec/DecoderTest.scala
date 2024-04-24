@@ -1,7 +1,7 @@
-package codec
+package br.com.mobilemind.json.codec
 
 import br.com.mobilemind.json.codec.converter.*
-import br.com.mobilemind.json.codec.converter.Decoder.{typ, field,  given}
+import br.com.mobilemind.json.codec.converter.Decoder.{typ, field, given}
 import br.com.mobilemind.json.codec.converter.base
 import br.com.mobilemind.json.codec.converter.base.JsonParser
 import br.com.mobilemind.json.codec.defs.{Json, |>}
@@ -32,7 +32,7 @@ class DecoderTest extends AnyFunSuite {
         groupsOpts2: Option[List[Group]] = None
     )
 
-    given DataDecoder[Group] =
+    given Decoder[Group] =
       typ[Group]
         |> field("id", (p, i: Int) => p.copy(id = i))
         |> field("description", (p, s: String) => p.copy(description = s))
@@ -58,18 +58,18 @@ class DecoderTest extends AnyFunSuite {
           |{
           |"id": 1,
           |"name": "Ricardo",
-          |"group": {"id": 10, "description": "g10"}
-          |"gopt1": {"id": 11, "description": "g11"}
+          |"group": {"id": 10, "description": "g10"},
+          |"gopt1": {"id": 11, "description": "g11"},
           |"ints": [1, 2, 3],
           |"longs": [4, 5, 6],
-          |"shorts": [7 ,8, 9]
+          |"shorts": [7 ,8, 9],
           |"doubles": [1.1, 1.2],
           |"floats": [1.3, 1.4],
           |"strings": ["aa", "bb", "cc"],
           |"groups": [{"id": 12, "description": "g12"}, {"id": 13, "description": "g13"}],
           |"groupsOpts2": [{"id": 14, "description": "g14"}, {"id": 15, "description": "g15"}]
           |}""".stripMargin)
-    println(s"==> ${person}")
+
     val expected =
       Person(
         1,
