@@ -1,8 +1,8 @@
-package br.com.mobilemind.json.codec.converter
+package io.json.codec.converter
 
-import br.com.mobilemind.json.codec.JsonCodecException
-import br.com.mobilemind.json.codec.converter.base.*
-import br.com.mobilemind.json.codec.infra.macros.createInstance
+import base.*
+import io.json.codec.JsonCodecException
+import io.json.codec.infra.macros.createInstance
 
 import scala.collection.mutable
 
@@ -32,6 +32,7 @@ class Decoder[T]()(using
 
   override def decode(v: Any): T =
     v match
+      case s: String => parse(s)
       case jsonObject: JsonObject =>
         fns.foldLeft(instance) { (inst, decFn) =>
           jsonObject.getByName(decFn.field) match

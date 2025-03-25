@@ -1,4 +1,4 @@
-package br.com.mobilemind.json.codec.infra
+package io.json.codec.infra
 
 import java.util.Date
 import scala.annotation.StaticAnnotation

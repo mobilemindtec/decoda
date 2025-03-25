@@ -1,4 +1,4 @@
-package br.com.mobilemind.json.codec.converter
+package io.json.codec.converter
 
 import java.util.Date
 import scala.collection.mutable

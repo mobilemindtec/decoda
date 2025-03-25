@@ -1,4 +1,4 @@
-package br.com.mobilemind.json.codec.converter.auto
+package io.json.codec.converter.auto
 
 class ArrayProduct(arr: Array[Any]) extends Product:
   override def productArity: Int = arr.length

@@ -1,10 +1,9 @@
-package br.com.mobilemind.json.codec
+package io.json.codec
 
-import br.com.mobilemind.json.codec.converter.Encoder.{field, typ, given}
-import br.com.mobilemind.json.codec.converter.{EncodeOptions, Encoder, base}
-import br.com.mobilemind.json.codec.converter.base.{DateFormatter, JsonCreator}
-import br.com.mobilemind.json.codec.defs
-import br.com.mobilemind.json.codec.defs.|>
+import io.json.codec.converter.Encoder.{field, typ, given}
+import io.json.codec.converter.base.{DateFormatter, JsonCreator}
+import defs.|>
+import io.json.codec.converter.{EncodeOptions, Encoder, base}
 import org.scalatest.funsuite.AnyFunSuite
 
 import java.text.SimpleDateFormat

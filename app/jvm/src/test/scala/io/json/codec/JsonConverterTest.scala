@@ -1,10 +1,9 @@
-package br.com.mobilemind.json.codec
+package io.json.codec
 
-import br.com.mobilemind.json.codec.infra.annotations.JsonValue
-import br.com.mobilemind.json.codec.converter.base
-import br.com.mobilemind.json.codec.converter.base.JsonCreator
-import br.com.mobilemind.json.codec.converter.auto.JsonConverter
-import br.com.mobilemind.json.codec.defs
+import io.json.codec.infra.annotations.JsonValue
+import io.json.codec.converter.base.JsonCreator
+import io.json.codec.converter.auto.JsonConverter
+import io.json.codec.converter.base
 import org.scalatest.funsuite.AnyFunSuite
 
 class JsonConverterTest extends AnyFunSuite:

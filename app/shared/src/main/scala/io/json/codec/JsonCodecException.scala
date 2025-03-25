@@ -1,3 +1,3 @@
-package br.com.mobilemind.json.codec
+package io.json.codec
 
 class JsonCodecException(message: String) extends Exception(message)

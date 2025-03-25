@@ -1,10 +1,10 @@
-package br.com.mobilemind.json.codec
+package io.json.codec
 
 import br.com.mobilemind.json.codec.converter.*
-import br.com.mobilemind.json.codec.converter.Decoder.{typ, field, given}
-import br.com.mobilemind.json.codec.converter.base
-import br.com.mobilemind.json.codec.converter.base.JsonParser
-import br.com.mobilemind.json.codec.defs.{Json, |>}
+import io.json.codec.converter.Decoder.{field, typ, given}
+import io.json.codec.converter.base.JsonParser
+import defs.{Json, |>}
+import io.json.codec.converter.{Decoder, base}
 import org.scalatest.funsuite.AnyFunSuite
 
 class DecoderTest extends AnyFunSuite {

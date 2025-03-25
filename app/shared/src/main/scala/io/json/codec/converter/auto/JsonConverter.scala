@@ -1,10 +1,10 @@
-package br.com.mobilemind.json.codec.converter.auto
+package io.json.codec.converter.auto
 
-import br.com.mobilemind.json.codec.converter.base
-import br.com.mobilemind.json.codec.converter.base.{Json, JsonArray, JsonCreator, JsonObject, JsonValue}
-import br.com.mobilemind.json.codec.infra.JsonFields
-import br.com.mobilemind.json.codec.infra.macros.{getFieldsDefaults, getJsonFields}
-import br.com.mobilemind.json.codec.{JsonCodecException, defs}
+import io.json.codec.converter.base.{Json, JsonArray, JsonCreator, JsonObject, JsonValue}
+import io.json.codec.infra.macros.{getFieldsDefaults, getJsonFields}
+import io.json.codec.converter.base
+import io.json.codec.{JsonCodecException, defs}
+import io.json.codec.infra.JsonFields
 
 import java.util.Date
 import scala.annotation.implicitNotFound

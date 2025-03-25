@@ -1,10 +1,10 @@
-package br.com.mobilemind.json.codec
+package io.json.codec
 
-import br.com.mobilemind.json.codec.converter.base
-import br.com.mobilemind.json.codec.converter.base.{Json, JsonCreator, JsonParser, JsonValue}
-import br.com.mobilemind.json.codec.parser.Parser
-import br.com.mobilemind.json.codec.parser.Parser.AstValue.*
-import br.com.mobilemind.json.codec.parser.Parser.{AstProp, AstValue}
+import io.json.codec.converter.base.{Json, JsonCreator, JsonParser, JsonValue}
+import io.json.codec.parser.Parser.AstValue.*
+import io.json.codec.parser.Parser.{AstProp, AstValue}
+import io.json.codec.converter.base
+import io.json.codec.parser.Parser
 
 import scala.collection.mutable
 

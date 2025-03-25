@@ -1,8 +1,8 @@
-package br.com.mobilemind.json.codec.converter
+package io.json.codec.converter
 
-import br.com.mobilemind.json.codec.JsonCodecException
-import br.com.mobilemind.json.codec.converter.OptOmit.NoOmit
-import br.com.mobilemind.json.codec.converter.base.*
+import OptOmit.NoOmit
+import base.*
+import io.json.codec.JsonCodecException
 
 import java.util.Date
 import scala.collection.mutable

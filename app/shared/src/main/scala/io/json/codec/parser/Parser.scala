@@ -1,7 +1,6 @@
-package br.com.mobilemind.json.codec.parser
+package io.json.codec.parser
 
-import br.com.mobilemind.json.codec.JsonCodecException
-
+import io.json.codec.JsonCodecException
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
 

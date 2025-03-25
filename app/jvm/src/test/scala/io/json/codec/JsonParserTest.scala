@@ -1,8 +1,8 @@
-package br.com.mobilemind.json.codec
+package io.json.codec
 
-import br.com.mobilemind.json.codec.parser.Parser
-import br.com.mobilemind.json.codec.parser.Parser.AstValue.*
-import br.com.mobilemind.json.codec.parser.Parser.{AstProp, AstValue}
+import io.json.codec.parser.Parser.AstValue.*
+import io.json.codec.parser.Parser.{AstProp, AstValue}
+import io.json.codec.parser.Parser
 import org.scalatest.funsuite.AnyFunSuite
 
 class JsonParserTest extends AnyFunSuite:

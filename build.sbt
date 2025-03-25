@@ -1,7 +1,7 @@
 val sharedSettings = Seq(
-  scalaVersion := "3.4.1",
+  scalaVersion := "3.6.4",
   name := "json-codec",
-  organization := "br.com.mobilemind",
+  organization := "io.json.codec",
   version := "0.0.1"
 )
 
@@ -15,16 +15,17 @@ scalacOptions ++= Seq(
   "-explain"
 )
 
-javacOptions ++= Seq("-source", "22", "-target", "22")
+javacOptions ++= Seq("-source", "23", "-target", "23")
 
 lazy val app =
   // select supported platforms
   crossProject(JSPlatform, JVMPlatform, NativePlatform)
     .crossType(CrossType.Full) // [Pure, Full, Dummy], default: CrossType.Full
+    .withoutSuffixFor(JVMPlatform)
     .settings(sharedSettings)
     .jsSettings( /* ... */ ) // defined in sbt-scalajs-crossproject
     .jvmSettings(
-      libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.17" % "test"
+      libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % "test"
     )
     // configure Scala-Native settings
     .nativeSettings( /* ... */ ) // defined in sbt-scala-native
