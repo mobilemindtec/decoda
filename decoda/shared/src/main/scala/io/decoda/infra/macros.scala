@@ -2,7 +2,6 @@ package io.decoda.infra
 
 import annotations.{JsonType, JsonValue}
 
-import scala.annotation.{MacroAnnotation, StaticAnnotation}
 import scala.quoted.*
 
 case class JsonField(

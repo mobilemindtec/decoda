@@ -1,6 +1,5 @@
 package io.decoda.infra
 
-import java.util.Date
 import scala.annotation.StaticAnnotation
 
 object annotations:

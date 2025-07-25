@@ -2,7 +2,7 @@ package io.decoda.converter
 
 import OptOmit.NoOmit
 import base.*
-import io.decoda.JsonCodecException
+import io.decoda.*
 
 import java.util.Date
 import scala.collection.mutable

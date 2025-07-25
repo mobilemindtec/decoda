@@ -6,8 +6,8 @@ import scala.reflect.ClassTag
 
 object Parser:
 
-  import TokenType._
-  import AstValue._
+  import TokenType.*
+  import AstValue.*
 
   enum TokenType:
     case LeftBrace
